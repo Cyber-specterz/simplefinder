@@ -1,0 +1,4 @@
+# SimpleFinder Dependencies
+requests>=2.31.0
+dnspython>=2.4.2
+colorama>=0.4.6
