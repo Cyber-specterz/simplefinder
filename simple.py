@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-SimpleFinderz - Advanced Subdomain Enumeration Tool
-Author: Cyber-Psecterz
-Version: 2.0.1
+SimpleFinderz - Professional Subdomain Scanner (PC Edition)
+Author: Cyber-Specterz
+Version: 3.0.0 PC
 """
 
 import sys
@@ -17,42 +17,30 @@ import ssl
 import re
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from urllib.parse import urlparse
 from datetime import datetime
 import logging
 from colorama import init, Fore, Style, Back
 
-# Initialize colorama for cross-platform colored output
+# Initialize colorama
 init(autoreset=True)
 
-# User agents for requests
-USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:89.0) Gecko/20100101 Firefox/89.0'
-]
+class Colors:
+    """Console colors for PC"""
+    RED = Fore.RED
+    GREEN = Fore.GREEN
+    YELLOW = Fore.YELLOW
+    BLUE = Fore.BLUE
+    CYAN = Fore.CYAN
+    MAGENTA = Fore.MAGENTA
+    WHITE = Fore.WHITE
+    RESET = Style.RESET_ALL
+    BOLD = Style.BRIGHT
 
-# Load API keys from environment or config file
-def load_api_keys():
-    api_keys = {}
-    try:
-        # Try to load from environment variables first
-        api_keys['virustotal'] = os.getenv('VIRUSTOTAL_API_KEY', '')
-        api_keys['securitytrails'] = os.getenv('SECURITYTRAILS_API_KEY', '')
-        api_keys['shodan'] = os.getenv('SHODAN_API_KEY', '')
-        return api_keys
-    except Exception:
-        return {}
-
-API_KEYS = load_api_keys()
-
-class SimpleFinderz:
+class SimpleFinderzPC:
     def __init__(self, domain, wordlist=None, threads=50, timeout=10, 
                  output_format='txt', verbose=False, use_dns=True, 
-                 use_apis=True, use_wordlist=True):
-        self.domain = domain
+                 use_apis=True, use_wordlist=True, use_all=True):
+        self.domain = domain.strip().lower()
         self.wordlist = wordlist
         self.threads = threads
         self.timeout = timeout
@@ -61,13 +49,18 @@ class SimpleFinderz:
         self.use_dns = use_dns
         self.use_apis = use_apis
         self.use_wordlist = use_wordlist
+        self.use_all = use_all
         self.found_subdomains = set()
-        self.active_subdomains = set()
+        
+        # Setup session
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': random.choice(USER_AGENTS),
-            'Accept': 'application/json'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9',
         })
+        
+        # Setup DNS resolver
         self.resolver = dns.resolver.Resolver()
         self.resolver.timeout = timeout
         self.resolver.lifetime = timeout
@@ -78,315 +71,223 @@ class SimpleFinderz:
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
         self.logger = logging.getLogger(__name__)
+        
+        # Create directories
+        os.makedirs('results', exist_ok=True)
+        os.makedirs('wordlists', exist_ok=True)
 
     def display_banner(self):
-        """Display SimpleFinderz banner"""
+        """Display banner for PC"""
         banner = f"""
-{Fore.CYAN}{'═'*70}
-{Fore.YELLOW}
-        ███████╗██╗███╗   ███╗██████╗ ██╗     ███████╗███╗   ██╗██████╗ ███████╗██████╗ ███████╗
-        ██╔════╝██║████╗ ████║██╔══██╗██║     ██╔════╝████╗  ██║██╔══██╗██╔════╝██╔══██╗██╔════╝
-        ███████╗██║██╔████╔██║██████╔╝██║     █████╗  ██╔██╗ ██║██║  ██║█████╗  ██████╔╝███████╗
-        ╚════██║██║██║╚██╔╝██║██╔═══╝ ██║     ██╔══╝  ██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗╚════██║
-        ███████║██║██║ ╚═╝ ██║██║     ███████╗███████╗██║ ╚████║██████╔╝███████╗██║  ██║███████║
-        ╚══════╝╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝╚══════╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝
-{Fore.GREEN}
-        ╔══════════════════════════════════════════════════════════════╗
-        ║                  ADVANCED SUBDOMAIN SCANNER                  ║
-        ║                         Version 2.0.1                        ║
-        ║                     Author: Cyber-Psecterz                   ║
-        ╚══════════════════════════════════════════════════════════════╝
-{Fore.CYAN}{'═'*70}{Style.RESET_ALL}
+{Colors.CYAN}{'═'*70}
+{Colors.YELLOW}
+        ███████╗██╗███╗   ███╗██████╗ ██╗     ███████╗
+        ██╔════╝██║████╗ ████║██╔══██╗██║     ██╔════╝
+        ███████╗██║██╔████╔██║██████╔╝██║     █████╗ 
+        ╚════██║██║██║╚██╔╝██║██╔═══╝ ██║     ██╔══╝  
+        ███████║██║██║ ╚═╝ ██║██║     ███████╗███████╗
+        ╚══════╝╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝╚══════╝
+{Colors.GREEN}
+    ╔══════════════════════════════════════════════════╗
+    ║           SIMPLEFINDERZ - PC EDITION             ║
+    ║                Version 3.0.0                     ║
+    ║             Author: Cyber-Specterz               ║
+    ╚══════════════════════════════════════════════════╝
+{Colors.CYAN}{'═'*70}{Colors.RESET}
 """
         print(banner)
         
-        print(f"{Fore.CYAN}[*] Target Domain:{Style.RESET_ALL} {Fore.YELLOW}{self.domain}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}[*] Threads:{Style.RESET_ALL} {self.threads}")
-        print(f"{Fore.CYAN}[*] Timeout:{Style.RESET_ALL} {self.timeout}s")
-        print(f"{Fore.CYAN}[*] Output Format:{Style.RESET_ALL} {self.output_format}")
-        print(f"{Fore.CYAN}[*] Started:{Style.RESET_ALL} {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"{Fore.CYAN}{'─'*70}{Style.RESET_ALL}\n")
+        print(f"{Colors.CYAN}[*] Target Domain:{Colors.RESET} {Colors.YELLOW}{self.domain}{Colors.RESET}")
+        print(f"{Colors.CYAN}[*] Threads:{Colors.RESET} {self.threads}")
+        print(f"{Colors.CYAN}[*] Timeout:{Colors.RESET} {self.timeout}s")
+        print(f"{Colors.CYAN}[*] Mode:{Colors.RESET} {Colors.GREEN}PC (Full Power){Colors.RESET}")
+        print(f"{Colors.CYAN}[*] Started:{Colors.RESET} {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"{Colors.CYAN}{'─'*70}{Colors.RESET}\n")
+
+    def query_api(self, url, api_name):
+        """Query any API"""
+        try:
+            response = self.session.get(url, timeout=self.timeout)
+            if response.status_code == 200:
+                return response
+        except Exception as e:
+            if self.verbose:
+                print(f"{Colors.YELLOW}[-] {api_name} API Error: {str(e)[:50]}{Colors.RESET}")
+        return None
 
     def crtsh_lookup(self):
-        """Query crt.sh for subdomains - FIXED"""
+        """Query crt.sh"""
         try:
-            url = f"https://crt.sh/?q=%25.{self.domain}&output=json"
-            headers = {'User-Agent': random.choice(USER_AGENTS)}
-            response = self.session.get(url, headers=headers, timeout=self.timeout)
-            
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    subdomains = set()
-                    for entry in data:
-                        # Extract subdomains from various fields
-                        fields = ['name_value', 'common_name']
-                        for field in fields:
-                            if field in entry and entry[field]:
-                                names = entry[field].split('\n')
-                                for name in names:
-                                    name = name.strip().lower()
-                                    # Clean the name
-                                    if name.startswith('*.'):
-                                        name = name[2:]
-                                    if name.endswith(f".{self.domain}"):
-                                        subdomains.add(name)
-                                    elif name == self.domain:
-                                        subdomains.add(name)
-                    self.logger.info(f"{Fore.GREEN}[+] crt.sh: Found {len(subdomains)} subdomains{Style.RESET_ALL}")
-                    return subdomains
-                except json.JSONDecodeError:
-                    # Try alternative parsing
-                    subdomains = set()
-                    for line in response.text.split('\n'):
-                        if self.domain in line.lower():
-                            # Extract possible subdomains
-                            matches = re.findall(r'[\w\.-]+\.' + re.escape(self.domain), line.lower())
-                            subdomains.update(matches)
-                    self.logger.info(f"{Fore.GREEN}[+] crt.sh: Found {len(subdomains)} subdomains (alternative parsing){Style.RESET_ALL}")
-                    return subdomains
-            else:
-                self.logger.warning(f"{Fore.YELLOW}[-] crt.sh: HTTP {response.status_code}{Style.RESET_ALL}")
+            url = f"https://crt.sh/?q=%.{self.domain}&output=json"
+            response = self.query_api(url, "crt.sh")
+            if response:
+                data = response.json()
+                subdomains = set()
+                for entry in data:
+                    for field in ['name_value', 'common_name']:
+                        if field in entry:
+                            values = str(entry[field]).split('\n')
+                            for value in values:
+                                value = value.strip().lower()
+                                if value.endswith(self.domain) and value != self.domain:
+                                    if value.startswith('*.'):
+                                        value = value[2:]
+                                    subdomains.add(value)
+                if subdomains:
+                    print(f"{Colors.GREEN}[+] crt.sh:{Colors.RESET} Found {len(subdomains)} subdomains")
+                return subdomains
         except Exception as e:
-            self.logger.error(f"{Fore.RED}[!] crt.sh Error: {e}{Style.RESET_ALL}")
+            if self.verbose:
+                print(f"{Colors.YELLOW}[-] crt.sh Error: {str(e)[:50]}{Colors.RESET}")
         return set()
 
     def hackertarget_lookup(self):
-        """Query hackertarget.com for subdomains"""
+        """Query Hackertarget"""
         try:
             url = f"https://api.hackertarget.com/hostsearch/?q={self.domain}"
-            headers = {'User-Agent': random.choice(USER_AGENTS)}
-            response = self.session.get(url, headers=headers, timeout=self.timeout)
-            
-            if response.status_code == 200:
+            response = self.query_api(url, "Hackertarget")
+            if response and "error" not in response.text.lower():
                 subdomains = set()
                 for line in response.text.split('\n'):
                     if ',' in line:
                         subdomain = line.split(',')[0].strip().lower()
                         if subdomain.endswith(f".{self.domain}"):
                             subdomains.add(subdomain)
-                self.logger.info(f"{Fore.GREEN}[+] Hackertarget: Found {len(subdomains)} subdomains{Style.RESET_ALL}")
+                if subdomains:
+                    print(f"{Colors.GREEN}[+] Hackertarget:{Colors.RESET} Found {len(subdomains)} subdomains")
                 return subdomains
-        except Exception as e:
-            self.logger.error(f"{Fore.RED}[!] Hackertarget Error: {e}{Style.RESET_ALL}")
+        except Exception:
+            pass
         return set()
 
-    def anubis_lookup(self):
-        """Query anubis.cyberxplore.com for subdomains"""
+    def threatcrowd_lookup(self):
+        """Query ThreatCrowd"""
         try:
-            url = f"https://jonlu.ca/anubis/subdomains/{self.domain}"
-            headers = {'User-Agent': random.choice(USER_AGENTS)}
-            response = self.session.get(url, headers=headers, timeout=self.timeout)
-            
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    subdomains = {sub.lower() for sub in data if sub.endswith(f".{self.domain}")}
-                    self.logger.info(f"{Fore.GREEN}[+] Anubis: Found {len(subdomains)} subdomains{Style.RESET_ALL}")
+            url = f"https://www.threatcrowd.org/searchApi/v2/domain/report/?domain={self.domain}"
+            response = self.query_api(url, "ThreatCrowd")
+            if response:
+                data = response.json()
+                if 'subdomains' in data:
+                    subdomains = {sub.lower() for sub in data['subdomains'] if sub.endswith(f".{self.domain}")}
+                    if subdomains:
+                        print(f"{Colors.GREEN}[+] ThreatCrowd:{Colors.RESET} Found {len(subdomains)} subdomains")
                     return subdomains
-                except json.JSONDecodeError:
-                    pass
-        except Exception as e:
-            self.logger.debug(f"[!] Anubis Error: {e}")
+        except Exception:
+            pass
+        return set()
+
+    def bufferover_lookup(self):
+        """Query BufferOver.run"""
+        try:
+            url = f"https://dns.bufferover.run/dns?q=.{self.domain}"
+            response = self.query_api(url, "BufferOver")
+            if response:
+                data = response.json()
+                subdomains = set()
+                if 'FDNS_A' in data:
+                    for entry in data['FDNS_A']:
+                        parts = entry.split(',')
+                        if len(parts) > 1:
+                            subdomain = parts[1].strip().lower()
+                            if subdomain.endswith(f".{self.domain}"):
+                                subdomains.add(subdomain)
+                if subdomains:
+                    print(f"{Colors.GREEN}[+] BufferOver:{Colors.RESET} Found {len(subdomains)} subdomains")
+                return subdomains
+        except Exception:
+            pass
         return set()
 
     def dns_resolve(self, subdomain):
-        """Resolve a subdomain to check if it exists - FIXED"""
+        """DNS resolution for PC"""
         try:
-            # Try A record first
             answers = self.resolver.resolve(subdomain, 'A')
-            if answers:
-                ips = [str(rdata) for rdata in answers]
-                return subdomain, ips
+            ips = [str(rdata) for rdata in answers]
+            return subdomain, ips, 'A'
         except dns.resolver.NXDOMAIN:
-            pass
+            return None, [], 'NXDOMAIN'
         except dns.resolver.NoAnswer:
             try:
-                # Try CNAME record
                 answers = self.resolver.resolve(subdomain, 'CNAME')
-                if answers:
-                    cnames = [str(rdata.target).rstrip('.') for rdata in answers]
-                    return subdomain, cnames
+                cnames = [str(rdata.target).rstrip('.') for rdata in answers]
+                return subdomain, cnames, 'CNAME'
             except:
-                pass
+                return None, [], 'NoAnswer'
         except Exception:
-            pass
-        return None, []
+            return None, [], 'Error'
 
     def brute_force_subdomains(self):
-        """Brute force subdomains using wordlist - FIXED"""
-        if not self.wordlist:
-            # Use built-in wordlist if none provided
-            builtin_words = [
-                'www', 'mail', 'ftp', 'localhost', 'webmail', 'smtp', 'pop', 'ns1', 
-                'ns2', 'cpanel', 'whm', 'webdisk', 'admin', 'email', 'blog', 'shop',
-                'api', 'dev', 'test', 'staging', 'mobile', 'm', 'app', 'docs', 'status'
-            ]
-            words = builtin_words
-            self.logger.info(f"Using built-in wordlist with {len(words)} words")
-        elif not os.path.exists(self.wordlist):
-            self.logger.warning(f"{Fore.YELLOW}[!] Wordlist not found: {self.wordlist}{Style.RESET_ALL}")
-            return set()
-        else:
+        """Brute force subdomains"""
+        # Load wordlist
+        words = []
+        if self.wordlist and os.path.exists(self.wordlist):
             try:
                 with open(self.wordlist, 'r') as f:
                     words = [line.strip() for line in f if line.strip()]
-                self.logger.info(f"Loaded wordlist with {len(words)} words")
-            except Exception as e:
-                self.logger.error(f"{Fore.RED}[!] Error loading wordlist: {e}{Style.RESET_ALL}")
-                return set()
+            except:
+                pass
+        
+        # Use default wordlist if empty
+        if not words:
+            default_words = [
+                'www', 'mail', 'ftp', 'admin', 'api', 'dev', 'test', 'blog', 'shop',
+                'app', 'mobile', 'm', 'cpanel', 'webmail', 'smtp', 'pop', 'ns1', 'ns2',
+                'web', 'secure', 'portal', 'vpn', 'wiki', 'demo', 'stage', 'staging',
+                'beta', 'alpha', 'prod', 'production', 'cdn', 'static', 'assets',
+                'media', 'img', 'images', 'js', 'css', 'download', 'upload', 'files'
+            ]
+            words = default_words
         
         subdomains = set()
         found_count = 0
         total_words = len(words)
         
-        print(f"{Fore.CYAN}[*] Brute forcing with {total_words} words...{Style.RESET_ALL}")
+        print(f"{Colors.CYAN}[*] Brute forcing with {total_words} words...{Colors.RESET}")
         
         try:
             with ThreadPoolExecutor(max_workers=self.threads) as executor:
-                # Create futures for all subdomains
-                futures = {}
-                for i, word in enumerate(words):
+                futures = []
+                for word in words:
                     subdomain = f"{word}.{self.domain}"
-                    future = executor.submit(self.dns_resolve, subdomain)
-                    futures[future] = (subdomain, i+1, total_words)
+                    futures.append(executor.submit(self.dns_resolve, subdomain))
                 
-                # Process results as they complete
-                for future in as_completed(futures):
-                    subdomain, current, total = futures[future]
-                    try:
-                        result = future.result()
-                        if result[0]:  # If subdomain was found
-                            found_subdomain, records = result
-                            subdomains.add(found_subdomain)
-                            found_count += 1
-                            if self.verbose:
-                                print(f"{Fore.GREEN}[+] {found_subdomain} -> {', '.join(records[:2])}{'...' if len(records) > 2 else ''}{Style.RESET_ALL}")
-                        # Show progress
-                        if current % 50 == 0 or current == total:
-                            print(f"{Fore.CYAN}[*] Progress: {current}/{total} words, Found: {found_count}{Style.RESET_ALL}")
-                    except Exception as e:
+                for i, future in enumerate(as_completed(futures), 1):
+                    result = future.result()
+                    if result[0]:
+                        found_subdomain, records, record_type = result
+                        subdomains.add(found_subdomain)
+                        found_count += 1
                         if self.verbose:
-                            self.logger.debug(f"Error processing {subdomain}: {e}")
+                            rec_str = ', '.join(records[:2])
+                            if len(records) > 2:
+                                rec_str += '...'
+                            print(f"{Colors.GREEN}[+] {found_subdomain}{Colors.RESET}")
+                    
+                    # Progress update
+                    if i % 100 == 0 or i == total_words:
+                        print(f"{Colors.CYAN}[*] Progress: {i}/{total_words} | Found: {found_count}{Colors.RESET}")
             
-            self.logger.info(f"{Fore.GREEN}[+] Brute Force: Found {found_count} subdomains{Style.RESET_ALL}")
+            if subdomains:
+                print(f"{Colors.GREEN}[+] Brute Force:{Colors.RESET} Found {len(subdomains)} subdomains")
             
         except Exception as e:
-            self.logger.error(f"{Fore.RED}[!] Brute Force Error: {e}{Style.RESET_ALL}")
+            print(f"{Colors.RED}[!] Brute force error: {str(e)[:50]}{Colors.RESET}")
         
         return subdomains
 
-    def securitytrails_lookup(self):
-        """Query SecurityTrails API for subdomains - FIXED"""
-        if not API_KEYS.get('securitytrails'):
-            self.logger.warning(f"{Fore.YELLOW}[!] SecurityTrails API key not configured{Style.RESET_ALL}")
-            return set()
-            
-        try:
-            url = f"https://api.securitytrails.com/v1/domain/{self.domain}/subdomains"
-            headers = {
-                'APIKEY': API_KEYS['securitytrails'],
-                'User-Agent': random.choice(USER_AGENTS)
-            }
-            response = self.session.get(url, headers=headers, timeout=self.timeout)
-            
-            if response.status_code == 200:
-                data = response.json()
-                subdomains = {f"{sub}.{self.domain}".lower() for sub in data.get('subdomains', [])}
-                self.logger.info(f"{Fore.GREEN}[+] SecurityTrails: Found {len(subdomains)} subdomains{Style.RESET_ALL}")
-                return subdomains
-            else:
-                self.logger.warning(f"{Fore.YELLOW}[-] SecurityTrails: HTTP {response.status_code}{Style.RESET_ALL}")
-        except Exception as e:
-            self.logger.error(f"{Fore.RED}[!] SecurityTrails Error: {e}{Style.RESET_ALL}")
-        return set()
-
-    def virustotal_lookup(self):
-        """Query VirusTotal API for subdomains"""
-        if not API_KEYS.get('virustotal'):
-            self.logger.warning(f"{Fore.YELLOW}[!] VirusTotal API key not configured{Style.RESET_ALL}")
-            return set()
-            
-        try:
-            url = f"https://www.virustotal.com/api/v3/domains/{self.domain}/subdomains"
-            headers = {
-                'x-apikey': API_KEYS['virustotal'],
-                'User-Agent': random.choice(USER_AGENTS)
-            }
-            response = self.session.get(url, headers=headers, timeout=self.timeout)
-            
-            if response.status_code == 200:
-                data = response.json()
-                subdomains = set()
-                for item in data.get('data', []):
-                    if 'id' in item:
-                        subdomain = item['id'].lower()
-                        if subdomain.endswith(f".{self.domain}"):
-                            subdomains.add(subdomain)
-                self.logger.info(f"{Fore.GREEN}[+] VirusTotal: Found {len(subdomains)} subdomains{Style.RESET_ALL}")
-                return subdomains
-        except Exception as e:
-            self.logger.error(f"{Fore.RED}[!] VirusTotal Error: {e}{Style.RESET_ALL}")
-        return set()
-
-    def check_web_server(self, subdomain):
-        """Check if subdomain has a web server"""
-        try:
-            # Try HTTP first
-            url = f"http://{subdomain}"
-            response = self.session.get(url, timeout=self.timeout, allow_redirects=True, verify=False)
-            title = self.extract_title(response.text)
-            return {
-                'subdomain': subdomain,
-                'status': response.status_code,
-                'title': title,
-                'server': response.headers.get('Server', 'Unknown'),
-                'url': url,
-                'protocol': 'http'
-            }
-        except Exception:
-            try:
-                # Try HTTPS
-                url = f"https://{subdomain}"
-                response = self.session.get(url, timeout=self.timeout, allow_redirects=True, verify=False)
-                title = self.extract_title(response.text)
-                return {
-                    'subdomain': subdomain,
-                    'status': response.status_code,
-                    'title': title,
-                    'server': response.headers.get('Server', 'Unknown'),
-                    'url': url,
-                    'protocol': 'https'
-                }
-            except Exception:
-                return None
-
-    def extract_title(self, html):
-        """Extract title from HTML"""
-        if not html:
-            return "No Title"
-        match = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
-        if match:
-            title = re.sub(r'\s+', ' ', match.group(1).strip())
-            return title[:50] + "..." if len(title) > 50 else title
-        return "No Title"
-
     def save_results(self, subdomains):
-        """Save results in various formats"""
+        """Save results to file"""
         if not subdomains:
-            self.logger.warning(f"{Fore.YELLOW}[!] No subdomains found to save{Style.RESET_ALL}")
+            print(f"{Colors.YELLOW}[!] No subdomains found to save{Colors.RESET}")
             return
-            
+        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         base_filename = f"simplefinderz_{self.domain}_{timestamp}"
-        
-        # Create output directory if it doesn't exist
-        os.makedirs('results', exist_ok=True)
         
         # Save to text file
         txt_filename = f"results/{base_filename}.txt"
         with open(txt_filename, 'w') as f:
-            f.write(f"# SimpleFinderz Results\n")
+            f.write(f"# SimpleFinderz Results - PC Edition\n")
             f.write(f"# Domain: {self.domain}\n")
             f.write(f"# Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"# Total Found: {len(subdomains)}\n")
@@ -406,10 +307,10 @@ class SimpleFinderz:
             with open(json_filename, 'w') as f:
                 json.dump(results, f, indent=2)
         
-        print(f"\n{Fore.GREEN}[+] Results saved to:{Style.RESET_ALL}")
-        print(f"   {Fore.CYAN}Text:{Style.RESET_ALL} {txt_filename}")
+        print(f"\n{Colors.GREEN}[+] Results saved:{Colors.RESET}")
+        print(f"   {Colors.CYAN}📄 Text:{Colors.RESET} {txt_filename}")
         if self.output_format in ['json', 'both']:
-            print(f"   {Fore.CYAN}JSON:{Style.RESET_ALL} {json_filename}")
+            print(f"   {Colors.CYAN}📊 JSON:{Colors.RESET} {json_filename}")
 
     def run(self):
         """Main execution method"""
@@ -418,131 +319,106 @@ class SimpleFinderz:
         all_subdomains = set()
         start_time = time.time()
         
-        print(f"{Fore.YELLOW}[*] Starting enumeration...{Style.RESET_ALL}\n")
+        print(f"{Colors.YELLOW}[*] Starting enumeration...{Colors.RESET}\n")
         
         # API-based enumeration
         if self.use_apis:
-            methods = [
-                (self.crtsh_lookup, "Certificate Transparency (crt.sh)"),
-                (self.hackertarget_lookup, "Hackertarget"),
-                (self.anubis_lookup, "Anubis"),
-                (self.securitytrails_lookup, "SecurityTrails"),
-                (self.virustotal_lookup, "VirusTotal")
+            apis = [
+                (self.crtsh_lookup, "Certificate Transparency"),
+                (self.hackertarget_lookup, "Hackertarget API"),
+                (self.threatcrowd_lookup, "ThreatCrowd"),
+                (self.bufferover_lookup, "BufferOver DNS"),
             ]
             
-            for method, name in methods:
-                print(f"{Fore.CYAN}[*] Querying {name}...{Style.RESET_ALL}")
+            for api_func, api_name in apis:
+                print(f"{Colors.CYAN}[*] Querying {api_name}...{Colors.RESET}")
                 try:
-                    subdomains = method()
+                    subdomains = api_func()
                     new_subdomains = subdomains - all_subdomains
                     all_subdomains.update(new_subdomains)
-                    if new_subdomains:
-                        print(f"   {Fore.GREEN}[+] Found {len(new_subdomains)} new subdomains{Style.RESET_ALL}")
+                    time.sleep(0.3)  # Rate limiting
                 except Exception as e:
-                    print(f"   {Fore.RED}[!] Error: {e}{Style.RESET_ALL}")
+                    if self.verbose:
+                        print(f"{Colors.YELLOW}   [!] Error: {str(e)[:50]}{Colors.RESET}")
         
         # DNS brute force
         if self.use_dns and self.use_wordlist:
-            print(f"\n{Fore.CYAN}[*] Starting DNS brute force...{Style.RESET_ALL}")
+            print(f"{Colors.CYAN}[*] Starting DNS brute force...{Colors.RESET}")
             brute_subdomains = self.brute_force_subdomains()
             new_subdomains = brute_subdomains - all_subdomains
             all_subdomains.update(new_subdomains)
-            if new_subdomains:
-                print(f"   {Fore.GREEN}[+] Found {len(new_subdomains)} new subdomains via brute force{Style.RESET_ALL}")
         
         elapsed_time = time.time() - start_time
         
         # Display summary
-        print(f"\n{Fore.CYAN}{'═'*70}{Style.RESET_ALL}")
-        print(f"{Fore.GREEN}[✓] SCAN COMPLETED{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}{'═'*70}{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}Target Domain:{Style.RESET_ALL} {self.domain}")
-        print(f"{Fore.YELLOW}Total Subdomains Found:{Style.RESET_ALL} {len(all_subdomains)}")
-        print(f"{Fore.YELLOW}Scan Duration:{Style.RESET_ALL} {elapsed_time:.2f} seconds")
+        print(f"\n{Colors.CYAN}{'═'*70}{Colors.RESET}")
+        print(f"{Colors.GREEN}[✓] SCAN COMPLETED{Colors.RESET}")
+        print(f"{Colors.CYAN}{'═'*70}{Colors.RESET}")
+        print(f"{Colors.YELLOW}Target Domain:{Colors.RESET} {self.domain}")
+        print(f"{Colors.YELLOW}Total Subdomains Found:{Colors.RESET} {len(all_subdomains)}")
+        print(f"{Colors.YELLOW}Scan Duration:{Colors.RESET} {elapsed_time:.2f} seconds")
         if elapsed_time > 0 and len(all_subdomains) > 0:
-            print(f"{Fore.YELLOW}Scan Rate:{Style.RESET_ALL} {len(all_subdomains)/elapsed_time:.2f} subdomains/sec")
-        print(f"{Fore.CYAN}{'═'*70}{Style.RESET_ALL}")
+            print(f"{Colors.YELLOW}Scan Rate:{Colors.RESET} {len(all_subdomains)/elapsed_time:.2f} subdomains/sec")
+        print(f"{Colors.CYAN}{'═'*70}{Colors.RESET}")
         
         # Display found subdomains
         if all_subdomains:
-            print(f"\n{Fore.CYAN}[*] Found Subdomains:{Style.RESET_ALL}")
+            print(f"\n{Colors.CYAN}[*] Found Subdomains:{Colors.RESET}")
             for i, subdomain in enumerate(sorted(all_subdomains), 1):
-                print(f"  {i:3}. {subdomain}")
+                if i <= 50:
+                    print(f"  {i:3}. {subdomain}")
+                else:
+                    remaining = len(all_subdomains) - 50
+                    print(f"  {Colors.YELLOW}... and {remaining} more (see results file){Colors.RESET}")
+                    break
         
         # Save results
         self.save_results(all_subdomains)
-        
-        # Check active web servers if verbose
-        if self.verbose and all_subdomains:
-            print(f"\n{Fore.CYAN}[*] Checking for active web servers...{Style.RESET_ALL}")
-            active_results = []
-            
-            with ThreadPoolExecutor(max_workers=min(self.threads, 10)) as executor:
-                futures = {executor.submit(self.check_web_server, sub): sub 
-                          for sub in sorted(all_subdomains)[:50]}  # Limit to first 50
-                
-                for future in as_completed(futures):
-                    result = future.result()
-                    if result:
-                        active_results.append(result)
-                        status_color = Fore.GREEN if 200 <= result['status'] < 300 else Fore.YELLOW
-                        print(f"{status_color}[+] {result['subdomain']} - HTTP {result['status']} - {result['title']}{Style.RESET_ALL}")
         
         return all_subdomains
 
 def main():
     parser = argparse.ArgumentParser(
-        description='SimpleFinderz - Advanced Subdomain Enumeration Tool',
+        description='SimpleFinderz - Professional Subdomain Scanner (PC Edition)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  %(prog)s example.com
-  %(prog)s example.com -w wordlist.txt -t 100 -o json
-  %(prog)s example.com --no-api --no-dns -v
-
-API Configuration:
-  Set environment variables for API keys:
-    export VIRUSTOTAL_API_KEY="your_key"
-    export SECURITYTRAILS_API_KEY="your_key"
-    export SHODAN_API_KEY="your_key"
+        epilog=f"""
+{Colors.GREEN}Examples:{Colors.RESET}
+  python simplefinderz-pc.py instagram.com
+  python simplefinderz-pc.py google.com -t 100 -v
+  python simplefinderz-pc.py example.com -w wordlist.txt -o json
+  
+{Colors.YELLOW}PC Features:{Colors.RESET}
+  • High-performance scanning (50+ threads)
+  • Multiple API sources
+  • Fast DNS resolution
+  • JSON/TXT output formats
         """
     )
     
-    parser.add_argument('domain', help='Target domain to enumerate')
-    parser.add_argument('-w', '--wordlist', help='Path to wordlist file', 
-                        default=None)
-    parser.add_argument('-t', '--threads', type=int, default=50,
-                        help='Number of threads (default: 50)')
-    parser.add_argument('--timeout', type=int, default=10,
-                        help='Timeout in seconds (default: 10)')
-    parser.add_argument('-o', '--output', choices=['txt', 'json', 'both'],
-                        default='txt', help='Output format (default: txt)')
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='Enable verbose output')
-    parser.add_argument('--no-api', action='store_true',
-                        help='Disable API-based enumeration')
-    parser.add_argument('--no-dns', action='store_true',
-                        help='Disable DNS brute force')
-    parser.add_argument('--no-wordlist', action='store_true',
-                        help='Disable wordlist brute force')
-    parser.add_argument('--no-ssl-verify', action='store_true',
-                        help='Disable SSL certificate verification')
+    parser.add_argument('domain', help='Target domain (e.g., instagram.com)')
+    parser.add_argument('-w', '--wordlist', help='Path to wordlist file', default=None)
+    parser.add_argument('-t', '--threads', type=int, default=50, help='Threads (default: 50)')
+    parser.add_argument('--timeout', type=int, default=10, help='Timeout seconds (default: 10)')
+    parser.add_argument('-o', '--output', choices=['txt', 'json', 'both'], default='txt', help='Output format')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('--no-api', action='store_true', help='Disable API queries')
+    parser.add_argument('--no-dns', action='store_true', help='Disable DNS brute force')
+    
+    if len(sys.argv) == 1:
+        parser.print_help()
+        print(f"\n{Colors.RED}[!] Please provide a domain{Colors.RESET}")
+        print(f"Example: python {sys.argv[0]} instagram.com")
+        sys.exit(1)
     
     args = parser.parse_args()
     
-    # Check if domain is valid
+    # Validate domain
     if not re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', args.domain):
-        print(f"{Fore.RED}[!] Invalid domain format{Style.RESET_ALL}")
+        print(f"{Colors.RED}[!] Invalid domain format{Colors.RESET}")
         sys.exit(1)
     
-    # Disable SSL verification if requested
-    if args.no_ssl_verify:
-        import urllib3
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        requests.packages.urllib3.disable_warnings()
-    
-    # Create scanner instance
-    scanner = SimpleFinderz(
+    # Create scanner
+    scanner = SimpleFinderzPC(
         domain=args.domain,
         wordlist=args.wordlist,
         threads=args.threads,
@@ -551,27 +427,23 @@ API Configuration:
         verbose=args.verbose,
         use_dns=not args.no_dns,
         use_apis=not args.no_api,
-        use_wordlist=not args.no_wordlist
+        use_wordlist=True
     )
     
     try:
         results = scanner.run()
         if not results:
-            print(f"\n{Fore.YELLOW}[!] No subdomains found for {args.domain}{Style.RESET_ALL}")
-            print(f"{Fore.CYAN}[*] Try:{Style.RESET_ALL}")
-            print(f"   1. Use a different wordlist: -w /path/to/wordlist.txt")
-            print(f"   2. Enable API lookups (if disabled)")
-            print(f"   3. Check your internet connection")
-            print(f"   4. Try with verbose mode: -v")
+            print(f"\n{Colors.YELLOW}[!] No subdomains found for {args.domain}{Colors.RESET}")
     except KeyboardInterrupt:
-        print(f"\n{Fore.YELLOW}[!] Scan interrupted by user{Style.RESET_ALL}")
+        print(f"\n{Colors.YELLOW}[!] Scan interrupted{Colors.RESET}")
         sys.exit(0)
     except Exception as e:
-        print(f"\n{Fore.RED}[!] Error: {str(e)}{Style.RESET_ALL}")
+        print(f"\n{Colors.RED}[!] Error: {str(e)}{Colors.RESET}")
         if args.verbose:
             import traceback
             traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":
+    print(f"{Colors.BLUE}[*] SimpleFinderz PC Edition v3.0.0{Colors.RESET}")
     main()
