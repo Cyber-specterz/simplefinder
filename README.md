@@ -44,7 +44,7 @@
 #### For PC (Windows/Linux/macOS):
 ```bash
 # Clone the repository
-git clone https://github.com/cyber-specterz/simple-finder.git
+git clone https://github.com/Cyber-specterz/simplefinder.git
 cd simple-finder
 
 # Install dependencies
@@ -52,5 +52,6 @@ pip install -r requirements.txt
 
 # Run Simple Finder
 python simple_finder.py --help
+
 
 
