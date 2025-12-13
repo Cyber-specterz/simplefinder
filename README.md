@@ -1,92 +1,56 @@
-🔍 SimpleFinder - Professional Subdomain Scanner
-<p align="center"> <img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"> <img src="https://img.shields.io/badge/Python-3.7+-green.svg" alt="Python"> <img src="https://img.shields.io/badge/Platform-PC%20%7C%20Termux-lightgrey.svg" alt="Platform"> <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"> <img src="https://img.shields.io/badge/Maintained-Yes-success.svg" alt="Maintained"> </p><p align="center"> <b>⚡ Advanced Subdomain Discovery Tool with Beautiful CLI Interface ⚡</b> </p><p align="center"> <img src="https://i.imgur.com/placeholder.png" width="600" alt="SimpleFinder Banner"> </p>
-📋 Table of Contents
-✨ Features
+# Simple Finder 🔍
 
-🚀 Quick Start
+**Simple Finder** is a high-performance subdomain enumeration tool designed for security researchers, penetration testers, and system administrators. It combines multiple enumeration techniques with a beautiful interface and powerful features to discover subdomains efficiently.
 
-🖥️ PC Installation
+![Simple Finder Banner](https://img.shields.io/badge/Simple-Finder-brightgreen)
+![Python](https://img.shields.io/badge/Python-3.8+-blue)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Termux-lightgrey)
 
-📱 Termux Installation
+## ✨ Features
 
-🎯 Usage Guide
+### 🎯 Core Capabilities
+- **Multi-Source Enumeration**: Combine results from certificate transparency logs, public APIs, and DNS brute force
+- **Smart DNS Resolution**: Fast and accurate subdomain discovery with intelligent caching
+- **Parallel Processing**: Multi-threaded scanning (50+ threads on PC, 15+ on Termux)
+- **Real-time Validation**: Instant validation of discovered subdomains
 
-📊 Output Examples
+### 🎨 Beautiful Interface
+- **Professional ASCII Banner**: Eye-catching tool branding
+- **Color-coded Output**: Easy-to-read console output with status indicators
+- **Progress Tracking**: Real-time progress bars and statistics
+- **Clean Organization**: Well-structured results with timestamps
 
-🔧 Advanced Usage
+### 📊 Output Formats
+- **Text Format**: Clean, readable output for manual review
+- **JSON Format**: Structured data for automation and integration
+- **Auto-save**: Automatic file naming with timestamps
+- **Multiple Export Options**: Export to various formats as needed
 
-🤝 Contributing
+### ⚡ Performance
+- **High-Speed Scanning**: Optimized algorithms for fast enumeration
+- **Resource Efficient**: Minimal memory footprint with intelligent caching
+- **Rate Limiting**: Built-in protection to avoid API bans
+- **Smart Retry Logic**: Automatic retry for failed requests
 
-📄 License
+## 🚀 Quick Start
 
-⭐ Support
+### Prerequisites
+- Python 3.8 or higher
+- `pip` package manager
 
-✨ Features
-🎯 Core Capabilities
-Multi-Source Enumeration: Combine results from certificate transparency logs, public APIs, and DNS brute force
+### Installation
 
-Smart DNS Resolution: Fast and accurate subdomain discovery with intelligent caching
-
-Parallel Processing: Multi-threaded scanning for maximum efficiency (50+ threads on PC, 15+ on Termux)
-
-Real-time Validation: Instant validation of discovered subdomains
-
-🎨 Beautiful Interface
-Professional ASCII Banner: Eye-catching tool branding
-
-Color-coded Output: Easy-to-read console output with status indicators
-
-Progress Tracking: Real-time progress bars and statistics
-
-Clean Organization: Well-structured results with timestamps
-
-📊 Output Formats
-Text Format: Clean, readable output for manual review
-
-JSON Format: Structured data for automation and integration
-
-Auto-save: Automatic file naming with timestamps
-
-Multiple Export Options: Export to various formats as needed
-
-⚡ Performance
-High-Speed Scanning: Optimized algorithms for fast enumeration
-
-Resource Efficient: Minimal memory footprint with intelligent caching
-
-Rate Limiting: Built-in protection to avoid API bans
-
-Smart Retry Logic: Automatic retry for failed requests
-
-
-
-🚀 Quick Start
-For PC (Windows/Linux/macOS):
-
+#### For PC (Windows/Linux/macOS):
+```bash
 # Clone the repository
-git clone https://github.com/Cyber-Specterz/simplefinder.git
-cd simplefinder
+git clone https://github.com/cyber-specterz/simple-finder.git
+cd simple-finder
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run your first scan
-python simplefinder.py instagram.com
+# Run Simple Finder
+python simple_finder.py --help
 
-For Termux (Android):
-
-# Install Termux from F-Droid, then:
-pkg update && pkg upgrade -y
-pkg install python git -y
-git clone https://github.com/Cyber-Specterz/simplefinder.git
-cd simplefinder
-python simplefinder-termux.py google.com
-
-🖥️ PC Installation
-Prerequisites
-Python 3.7+ (Download)
-
-pip (Python package manager)
-
-Git (optional, for cloning)
 
